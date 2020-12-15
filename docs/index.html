@@ -56,14 +56,7 @@ title: ISD
     
     
   </p>
-<p> 
-  2. Most recent self-supervised learning methods including ours use an aggressive augmentation to learn good features.
-  However, those augmented images do not look natural to human eyes. This means they add a bias to the data that does not
-  exist in real world applications. We show that we can use a model trained with aggressive augmentation as a frozen teacher 
-  and then adapt it to another model that has not seen those aggressive augmentations. Interestingly the new model performs 
-  better than the teacher in down-stream transfer learning tasks. We believe this happens since the new model has adopted
-  priors of a more natural dataset through our similarity-based distillation.
-  </p>
+
   
   <p>
       We sample some query images randomly (left column), calculate their teacher probability distribution over all anchor points in the memory bank 
@@ -75,6 +68,17 @@ title: ISD
 
 <p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/fig1.png" width="100%" alt style></p>
     
+  
+  <p> 
+  2. Most recent self-supervised learning methods including ours use an aggressive augmentation to learn good features.
+  However, those augmented images do not look natural to human eyes. This means they add a bias to the data that does not
+  exist in real world applications. We show that we can use a model trained with aggressive augmentation as a frozen teacher 
+  and then adapt it to another model that has not seen those aggressive augmentations. Interestingly the new model performs 
+  better than the teacher in down-stream transfer learning tasks. We believe this happens since the new model has adopted
+  priors of a more natural dataset through our similarity-based distillation.
+  </p>
+  
+  
     <h5 id="Method"><b>Method</b></h5>
 <p> 
     We initialize both teacher and student networks from scratch and update the teacher as running average of the student.
