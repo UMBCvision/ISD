@@ -85,14 +85,7 @@ title: ISD
     
     </p>
   
-  <p>
-        Additionally, we evaluate our models on transfer tasks using nearest neighbor evaluation. * denotes that CompRess is not directly
-      comparable as it uses a larger SSL model as the teacher: MoCo-V2(ResNet50) for ResNet18 and SimCLR(ResNet50x4) for ResNet50.
-        
-    </p>
-<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/result_table2.png" width="60%" alt style>
-    
-    </p>
+  
   <h5 id="evolution"><b>Evolution of teacher and student models</b></h5>
   
     <p>
@@ -101,7 +94,7 @@ title: ISD
   the student as the final model which seems to be sub-optimal. We believe this is due to ensembling effect similar to [MeanTeacher] and needs more investigation.
     
     </p>
-<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/fig2.png" width="60%" alt style>
+<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/fig2.png" width="100%" alt style>
     
     </p>
 
@@ -114,12 +107,12 @@ title: ISD
   We use Linear evaluation and NN for evaluation.
         
     </p>
-<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/result_table4.png" width="60%" alt style>
+<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/result_table4.png" width="100%" alt style>
     
     </p>
   
  
-<h5 id="unbalanced dataset"><b>Removing the bias of aggressive augmentations </b></h5>
+<h5 id="unbalanced dataset"><b>Self-Supervised  Learning  on  Unbalanced Dataset </b></h5>
     
 <p>
          Nearest Neighbor (NN) results for the unbalanced data when we consider all 38 categories and 30 small categories separately. 
@@ -132,7 +125,7 @@ title: ISD
 
         
     </p>
-<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/result_table5.png" width="60%" alt style>
+<p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/result_table5.png" width="90%" alt style>
     
     </p>
     
