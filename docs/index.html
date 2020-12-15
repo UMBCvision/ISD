@@ -39,10 +39,33 @@ title: ISD
   We also show that our  method  performs  better  in  the  settings  where  the  unlabeled  data  is  unbalanced.</p>
 
 <h5 id="contributions"><b>Contributions</b></h5>
+  <p> 
+    1. In the standard contrastive setting, e.g., MoCo [3], there is a binary distinction between positive and negative pairs, 
+    but in practice, many negative pairs may be from the same category as the positive one. Thus, forcing the model to classify
+    them as negative is misleading. This can be more important when the unlabeled training data is unbalanced, for example, 
+    when a large portion of images are from a small number of categories. Such scenario can happen in applications like self-driving
+    cars, where most of the data is just repetitive data captured from a high-way scene with a couple of cars in it. 
+    In such cases, the standard contrastive learning methods will try to learn features to distinguish two instances 
+    of the large category that are in a negative pair, which may not be helpful for the down-stream task of understanding rare cases. 
+    We are interested in relaxing the binary classification of contrastive learning with soft labeling,
+    where the teacher network calculates the similarity of the query image with respect to a set of anchor 
+    points in the memory bank, convert that into a probability distribution over neighboring examples, 
+    and then transfer that knowledge to the student, so that the student also mimics the same neighborhood 
+    similarity.  We show that our method performs better than SOTA self-supervised methods on
+    ImageNet and also we show an improved accuracy on the rare cases when trained on unbalanced, unlabeled data (for which we use a subset of ImageNet).
+    
+    
+  </p>
 <p> 
-  ToDo: write our contribution
+  2. Most recent self-supervised learning methods including ours use an aggressive augmentation to learn good features.
+  However, those augmented images do not look natural to human eyes. This means they add a bias to the data that does not
+  exist in real world applications. We show that we can use a model trained with aggressive augmentation as a frozen teacher 
+  and then adapt it to another model that has not seen those aggressive augmentations. Interestingly the new model performs 
+  better than the teacher in down-stream transfer learning tasks. We believe this happens since the new model has adopted
+  priors of a more natural dataset through our similarity-based distillation.
+  </p>
   
-  
+  <p>
       We sample some query images randomly (left column), calculate their teacher probability distribution over all anchor points in the memory bank 
   (size=128K) and rank them in descending order (right columns). The second left column is another augmented version of the query image that contrastive
   learning methods use for the positive pair. Our students learns to mimic the probability number written below each anchor image while contrastive learning
