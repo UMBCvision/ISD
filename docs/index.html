@@ -89,9 +89,12 @@ title: ISD
   <h5 id="evolution"><b>Evolution of teacher and student models</b></h5>
   
     <p>
-   Comparing the teacher and student ResNet18 models using Nearest Neighbor while training for MoCo, BYOL, and ISD methods. 
+       
+      For every 10 epoch of ResNet-18, we evaluate both teacher and student models for BYOL, MoCo, and ISD methods using nearest neighbor. 
+      For all methods, the teacher performs usually better than the student in the initial epochs when the learning rate is small and then is very close to the student when learning rate shrinks.
+   
   Interestingly, the teacher performs better than the student before shrinking the learning rate. Most previous works use 
-  the student as the final model which seems to be sub-optimal. We believe this is due to ensembling effect similar to [MeanTeacher] and needs more investigation.
+  the student as the final model which seems to be sub-ptimal. We believe this is due to ensembling effect similar to [10].
     
     </p>
 <p style="text-align:center;"><img src="{{ site.baseurl }}/assets/images/fig2.png" width="100%" alt style>
@@ -102,7 +105,18 @@ title: ISD
     <h5 id="augmentation biases"><b>Removing the bias of aggressive augmentations </b></h5>
     
 <p>
-       We use a variation of our method to remove the bias of aggressive augmentations that most recent SSL methods are trained with. 
+  Most recent self-supervised learning methods work by pulling embeddings of two different augmentations of an image close to each other. 
+  It is shown that using aggressive augmentations improves the performance probably by introducing more variation between the pair of augmented images.
+  Hence, using aggressive augmentation is standard in the new SSL methods. However, the augmented images do not look natural anymore, so the SSL model is 
+  trained on non-natural images. We argue that this bias may reduce the quality of the features in the final tasks where the images will be natural.
+  </p>
+  <p>
+  We use a variation of our method to remove the bias of aggressive augmentations that most recent SSL methods are trained with. 
+    Our ISD method performs similarity-based distillation iteratively where the student is optimized by distilling the teacher 
+    and the teacher is updated as a moving average of the student. One can initialize the teacher from an already trained model and set the momentum to 1,
+    which will ignore updating the teacher. Such a method can distill the teacher into a student model that is initialized from scratch. 
+    Note that this method is closely related to CompRess [1] except that we are using it for self-distillation instead of compressing from a deep model to a shallow one.
+   
   We believe the student model performs better than the teacher on transfer learning settings since it has learned less unnatural biases.  
   We use Linear evaluation and NN for evaluation.
         
@@ -115,11 +129,14 @@ title: ISD
 <h5 id="unbalanced dataset"><b>Self-Supervised  Learning  on  Unbalanced Dataset </b></h5>
     
 <p>
-         Nearest Neighbor (NN) results for the unbalanced data when we consider all 38 categories and 30 small categories separately. 
-  We repeat the experiment 10 times with different random sets of 38 categories. NN is done on the validation set of ImageNet 
-  (which has uniform distribution) by searching the nearest neighbors among all ImageNet training data of those 38 categories 
-  (so the training data of NN also has uniform distribution). Hence, the whole evaluation is on balanced data to make sure we observe 
-  the effect of the unbalanced, ``unlabeled'' data only. ``Diff'' shows the improvement of our method over MoCo. Interestingly the 
+  To study our method on unbalanced data, we design a controlled setting to introduce the unbalanced data in the SSL training only
+  and factor out its effect in the feature evaluation step. Hence, we subsample ImageNet data with 38 random categories where 8 categories are large 
+  (use all almost 1300 images per category) and 30 categories are small (use only 100 images per category.) 
+  We train our SSL method and then evaluate by nearest neighbor (NN) classifier on the balanced validation data. 
+  To make sure that the feature evaluation is not affected by the unbalanced data, we keep both evaluation and the training data of NN search balanced, 
+  so for NN search, we use all ImageNet training images (almost 1300 x 38 images) for those 38 categories. 
+  We repeat the sampling of 38 categories 10 times to come up with 10 datasets.
+          ``Diff'' shows the improvement of our method over MoCo. Interestingly the 
   improvement is bigger in the rare categories. This is aligned with out hypothesis that our method can handle unbalanced, unlabeled 
   data better since it does not consider all negative images equally negative.
 
@@ -150,6 +167,6 @@ title: ISD
   [7] S. Maji, J. Kannala, E. Rahtu, M. Blaschko, and A. Vedaldi.Finegrained visual classification of aircraft. Technical report,2013.
   [8] Maria-Elena  Nilsback  and  Andrew  Zisserman.    Automated flower  classification  over  a  large  number  of  classes.   InIndian  Conference  on  Computer  Vision,  Graphics  and  Image Processing, Dec 2008.
   [9] P. Welinder, S. Branson, T. Mita, C. Wah, F. Schroff, S. Belongie,  and  P.  Perona.   Caltech-UCSD  Birds  200.   Technical  Report  CNS-TR-2010-001,  California  Institute  of  Technology, 2010.
-  
+  [10] Antti Tarvainen and Harri Valpola.  Mean teachers are betterrole models:  Weight-averaged consistency targets improve semi-supervised deep learning results. InAdvances in neural information processing systems, pages 1195–1204, 2017.
   
   
