@@ -22,7 +22,7 @@ This is the code for the paper ["ISD: Self-Supervised Learning by Iterative Simi
 
 # Training
 
-Following command can be used to train the ISD method
+Following command can be used to train the ISD ResNet18 method
 
 ```
 CUDA_VISIBLE_DEVICES=0,1 python train_isd.py \
@@ -36,6 +36,24 @@ CUDA_VISIBLE_DEVICES=0,1 python train_isd.py \
   --arch resnet18 \
   --checkpoint_path output/isd_1_t_020_augv2_lr_decay_140_180_epochs_200_resnet18 \
   /datasets/imagenet
+```
+
+To train ISD ResNet50 use following command: 
+```
+python train_isd_plus.py \
+  --num_workers 24 \
+  --print_freq 100 \
+  --momentum 0.99 \
+  --queue_size 128000 \
+  --temp_t 0.01 \
+  --temp_s 0.1 \
+  --learning_rate 0.05 \
+  --epochs 200  \
+  --cos \
+  --arch resnet50 \
+  --weak_strong \
+  --checkpoint_path <CHECKPOINT PATH> \
+  <DATASET PATH>
 ```
 
 Following command can be used to train the BYOL method. This version of BYOL works with small batchces (256) and SGD optimizer. 
