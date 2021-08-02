@@ -32,13 +32,13 @@ def parse_option():
     parser.add_argument('--debug', action='store_true', help='whether in debug mode or not')
 
     parser.add_argument('--print_freq', type=int, default=100, help='print frequency')
-    parser.add_argument('--save_freq', type=int, default=10, help='save frequency')
+    parser.add_argument('--save_freq', type=int, default=2, help='save frequency')
     parser.add_argument('--batch_size', type=int, default=256, help='batch_size')
-    parser.add_argument('--num_workers', type=int, default=24, help='num of workers to use')
-    parser.add_argument('--epochs', type=int, default=200, help='number of training epochs')
+    parser.add_argument('--num_workers', type=int, default=12, help='num of workers to use')
+    parser.add_argument('--epochs', type=int, default=130, help='number of training epochs')
 
     # optimization
-    parser.add_argument('--learning_rate', type=float, default=0.05, help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
     parser.add_argument('--lr_decay_epochs', type=str, default='90,120', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.2, help='decay rate for learning rate')
     parser.add_argument('--cos', action='store_true',
@@ -46,15 +46,15 @@ def parse_option():
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
     parser.add_argument('--sgd_momentum', type=float, default=0.9, help='SGD momentum')
 
-    # model definition
-    parser.add_argument('--arch', type=str, default='alexnet',
-                        choices=['alexnet', 'resnet18', 'resnet50', 'mobilenet'])
 
-    # ISD
+    # model settings
+    parser.add_argument('--arch', type=str, default='alexnet',
+                        choices=['alexnet' , 'resnet18' , 'resnet50', 'mobilenet'])
+
+    # isd settings
     parser.add_argument('--queue_size', type=int, default=128000)
-    parser.add_argument('--temp_t', type=float, default=0.01)
-    parser.add_argument('--temp_s', type=float, default=0.1)
-    parser.add_argument('--momentum', type=float, default=0.99)
+    parser.add_argument('--temp', type=float, default=0.02)
+    parser.add_argument('--momentum', type=float, default=0.999)
     parser.add_argument('--augmentation', type=str, default='weak/strong',
                         choices=['weak/strong', 'weak/weak', 'strong/weak', 'strong/strong'],
                         help='use full or subset of the dataset')
@@ -86,7 +86,6 @@ class ImageFolderEx(datasets.ImageFolder) :
 
 
 class KLD(nn.Module):
-
     def forward(self, inputs, targets):
         inputs = F.log_softmax(inputs, dim=1)
         targets = F.softmax(targets, dim=1)
@@ -104,29 +103,36 @@ def get_mlp(inp_dim, hidden_dim, out_dim):
 
 
 class ISD(nn.Module):
-    def __init__(self, arch, K=128000, m=0.99, T_t=0.01, T_s=0.1):
+    def __init__(self, arch, K=65536, m=0.999, T=0.07):
         super(ISD, self).__init__()
 
         self.K = K
         self.m = m
-        self.T_t = T_t
-        self.T_s = T_s
+        self.T = T
 
         # create encoders and projection layers
         if 'resnet' in arch:
             # both encoders should have same arch
             self.encoder_q = resnet.__dict__[arch]()
             self.encoder_k = resnet.__dict__[arch]()
-
+            # save output embedding dimensions
+            # assuming that both encoders have same dim
             feat_dim = self.encoder_q.fc.in_features
-            hidden_dim = feat_dim * 2
-            proj_dim = feat_dim // 4
+            out_dim = feat_dim
 
-            # projection layers
-            self.encoder_k.fc = get_mlp(feat_dim, hidden_dim, proj_dim)
-            self.encoder_q.fc = get_mlp(feat_dim, hidden_dim, proj_dim)
+            ##### prediction layer ####
+            # 1. have a prediction layer for q with BN
+            self.predict_q = nn.Sequential(
+                nn.Linear(feat_dim, feat_dim, bias=False),
+                nn.BatchNorm1d(feat_dim),
+                nn.ReLU(inplace=True),
+                nn.Linear(feat_dim, feat_dim, bias=True),
+            )
 
-            self.predict_q = get_mlp(proj_dim, hidden_dim, proj_dim)
+            ##### projection layers ####
+            # 1. no projection layers for encoders
+            self.encoder_k.fc = nn.Sequential()
+            self.encoder_q.fc = nn.Sequential()
         else:
             raise ValueError('arch not found: {}'.format(arch))
 
@@ -136,19 +142,19 @@ class ISD(nn.Module):
             param_k.requires_grad = False
 
         # setup queue
-        self.register_buffer('queue', torch.randn(self.K, proj_dim))
+        self.register_buffer('queue', torch.randn(self.K, out_dim))
         # normalize the queue
-        self.queue = nn.functional.normalize(self.queue, dim=1)
-        self.register_buffer('labels', -1*torch.ones(self.K).long())
-        print(self.queue.shape)
+        self.queue = nn.functional.normalize(self.queue, dim=0)
 
         # setup the queue pointer
         self.register_buffer('queue_ptr', torch.zeros(1, dtype=torch.long))
+
 
     @torch.no_grad()
     def _momentum_update_key_encoder(self):
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
+
 
     @torch.no_grad()
     def data_parallel(self):
@@ -156,21 +162,22 @@ class ISD(nn.Module):
         self.encoder_k = torch.nn.DataParallel(self.encoder_k)
         self.predict_q = torch.nn.DataParallel(self.predict_q)
 
+
     @torch.no_grad()
-    def _dequeue_and_enqueue(self, keys, labels):
+    def _dequeue_and_enqueue(self, keys):
         batch_size = keys.shape[0]
 
         ptr = int(self.queue_ptr)
-        assert self.K % batch_size == 0
+        assert self.K % batch_size == 0 
 
         # replace the keys at ptr (dequeue and enqueue)
         self.queue[ptr:ptr + batch_size] = keys
-        self.labels[ptr:ptr + batch_size] = labels
         ptr = (ptr + batch_size) % self.K  # move pointer
 
         self.queue_ptr[0] = ptr
 
-    def forward(self, im_q, im_k, labels):
+
+    def forward(self, im_q, im_k):
         # compute query features
         feat_q = self.encoder_q(im_q)
         # compute prediction queries
@@ -199,23 +206,13 @@ class ISD(nn.Module):
         sim_k = torch.mm(k, queue.t())
 
         # scale the similarities with temperature
-        sim_q /= self.T_s
-        sim_k /= self.T_t
-
-        # calculate purity
-        msf_n, n_inds = sim_k.topk(5, dim=1)
-        labels_old = labels
-        labels = labels.unsqueeze(1).expand(msf_n.shape[0], msf_n.shape[1])
-        labels_queue = self.labels.clone().detach()
-        labels_queue = labels_queue.unsqueeze(0).expand((msf_n.shape[0], self.K))
-        labels_queue = torch.gather(labels_queue, dim=1, index=n_inds)
-        matches = (labels_queue == labels).float()
-        purity = (matches.sum(dim=1) / 5).mean()
+        sim_q /= self.T
+        sim_k /= self.T
 
         # dequeue and enqueue
-        self._dequeue_and_enqueue(k, labels_old)
+        self._dequeue_and_enqueue(k)
 
-        return sim_q, sim_k, purity
+        return sim_q, sim_k
 
 
 def get_shuffle_ids(bsz):
@@ -247,7 +244,7 @@ class TwoCropsTransform:
 class GaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
 
-    def __init__(self, sigma):
+    def __init__(self, sigma=[.1, 2.]):
         self.sigma = sigma
 
     def __call__(self, x):
@@ -328,9 +325,8 @@ def main():
             logpath=os.path.join(args.checkpoint_path, 'logs'),
             filepath=os.path.abspath(__file__)
         )
-
-        def print_pass(*arg):
-            logger.info(*arg)
+        def print_pass(*args):
+            logger.info(*args)
         builtins.print = print_pass
 
     if args.gpu is not None:
@@ -340,7 +336,7 @@ def main():
 
     train_loader = get_train_loader(args)
 
-    isd = ISD(args.arch, K=args.queue_size, m=args.momentum, T_t=args.temp_t, T_s=args.temp_s)
+    isd = ISD(args.arch, K=args.queue_size, m=args.momentum, T=args.temp)
     isd.data_parallel()
     isd = isd.cuda()
 
@@ -365,6 +361,7 @@ def main():
         optimizer.load_state_dict(ckpt['optimizer'])
         args.start_epoch = ckpt['epoch'] + 1
 
+
     # routine
     for epoch in range(args.start_epoch, args.epochs + 1):
 
@@ -372,7 +369,7 @@ def main():
         print("==> training...")
 
         time1 = time.time()
-        train(epoch, train_loader, isd, criterion, optimizer, args)
+        loss = train_student(epoch, train_loader, isd, criterion, optimizer, args)
 
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
@@ -395,7 +392,7 @@ def main():
             torch.cuda.empty_cache()
 
 
-def train(epoch, train_loader, isd, criterion, optimizer, opt):
+def train_student(epoch, train_loader, isd, criterion, optimizer, opt):
     """
     one epoch training for CompReSS
     """
@@ -404,17 +401,15 @@ def train(epoch, train_loader, isd, criterion, optimizer, opt):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     loss_meter = AverageMeter()
-    purity_meter = AverageMeter()
 
     end = time.time()
-    for idx, (indices, (im_q, im_k), labels) in enumerate(train_loader):
+    for idx, (indices, (im_q, im_k), _) in enumerate(train_loader):
         data_time.update(time.time() - end)
         im_q = im_q.cuda(non_blocking=True)
         im_k = im_k.cuda(non_blocking=True)
-        labels = labels.cuda(non_blocking=True)
 
         # ===================forward=====================
-        sim_q, sim_k, purity = isd(im_q=im_q, im_k=im_k, labels=labels)
+        sim_q, sim_k = isd(im_q=im_q, im_k=im_k)
         loss = criterion(inputs=sim_q, targets=sim_k)
 
         # ===================backward=====================
@@ -424,7 +419,6 @@ def train(epoch, train_loader, isd, criterion, optimizer, opt):
 
         # ===================meters=====================
         loss_meter.update(loss.item(), im_q.size(0))
-        purity_meter.update(purity.item(), im_q.size(0))
 
         torch.cuda.synchronize()
         batch_time.update(time.time() - end)
@@ -435,10 +429,9 @@ def train(epoch, train_loader, isd, criterion, optimizer, opt):
             print('Train: [{0}][{1}/{2}]\t'
                   'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'loss {loss.val:.3f} ({loss.avg:.3f})\t'
-                  'purity {purity.val:.3f} ({purity.avg:.3f})\t'.format(
+                  'loss {loss.val:.3f} ({loss.avg:.3f})\t'.format(
                    epoch, idx + 1, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=loss_meter, purity=purity_meter))
+                   data_time=data_time, loss=loss_meter))
             sys.stdout.flush()
 
     return loss_meter.avg
