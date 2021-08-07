@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 
+#SBATCH --account=pi_hpirsiav
+#SBATCH --time=9-00:00:00
+#SBATCH --job-name=isd_5_cos_lr_0x01_m_0x99_aug_ws_mlp_resnet18
+#SBATCH --output=logs/isd_5_cos_lr_0x01_m_0x99_aug_ws_mlp_resnet18.txt
+#SBATCH --error=logs/isd_5_cos_lr_0x01_m_0x99_aug_ws_mlp_resnet18.txt
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:4
+#SBATCH --qos=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=100G
+
 set -x
 set -e
+
 
 # CUDA_VISIBLE_DEVICES=$1 python train_isd_r18.py \
 #     --save_freq 5 \
@@ -39,17 +53,17 @@ set -e
 #     --checkpoint_path output/isd_3_step_lr_0x01_140_180_m_0x99_aug_ss_resnet18 \
 #     /nfs/ada/hpirsiav/datasets/imagenet
 
-CUDA_VISIBLE_DEVICES=$1 python train_isd_r18.py \
-    --save_freq 5 \
-    --num_workers 16 \
-    --epochs 200 \
-    --learning_rate 0.01 \
-    --cos \
-    --momentum 0.99 \
-    --arch resnet18 \
-    --augmentation 'weak/strong' \
-    --checkpoint_path output/isd_4_cos_lr_0x01_m_0x99_aug_ws_resnet18 \
-    /nfs/ada/hpirsiav/datasets/imagenet
+# CUDA_VISIBLE_DEVICES=$1 python train_isd_r18.py \
+#     --save_freq 5 \
+#     --num_workers 16 \
+#     --epochs 200 \
+#     --learning_rate 0.01 \
+#     --cos \
+#     --momentum 0.99 \
+#     --arch resnet18 \
+#     --augmentation 'weak/strong' \
+#     --checkpoint_path output/isd_4_cos_lr_0x01_m_0x99_aug_ws_resnet18 \
+#     /nfs/ada/hpirsiav/datasets/imagenet
 
 # CUDA_VISIBLE_DEVICES=$1 python train_isd.py \
 #   --save_freq 5 \
