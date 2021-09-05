@@ -1,6 +1,6 @@
 # ISD
 
-This is the code for the paper ["ISD: Self-Supervised Learning by Iterative Similarity Distillation"](https://arxiv.org/abs/2012.09259)
+This is the code for the paper ["ISD: Self-Supervised Learning by Iterative Similarity Distillation"](https://www.csee.umbc.edu/~hpirsiav/papers/ISD_iccv21.pdf)
 
 ```
 @misc{tejankar2020isd,
