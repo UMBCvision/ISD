@@ -1,6 +1,8 @@
-@inproceedings{koohpayegani2020compress,
-  title={CompRess: Self-Supervised Learning by Compressing Representations},
-  author={Koohpayegani, Soroush Abbasi and Tejankar, Ajinkya and Pirsiavash, Hamed},
-  booktitle={NeurIPS},
-  year={2020}
+@InProceedings{Tejankar_2021_ICCV,
+    author    = {Tejankar, Ajinkya and Koohpayegani, Soroush Abbasi and Pillai, Vipin and Favaro, Paolo and Pirsiavash, Hamed},
+    title     = {ISD: Self-Supervised Learning by Iterative Similarity Distillation},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2021},
+    pages     = {9609-9618}
 }
