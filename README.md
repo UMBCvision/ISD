@@ -3,6 +3,15 @@
 This is the code for the paper ["ISD: Self-Supervised Learning by Iterative Similarity Distillation"](https://www.csee.umbc.edu/~hpirsiav/papers/ISD_iccv21.pdf)
 
 ```
+@InProceedings{Tejankar_2021_ICCV,
+    author    = {Tejankar, Ajinkya and Koohpayegani, Soroush Abbasi and Pillai, Vipin and Favaro, Paolo and Pirsiavash, Hamed},
+    title     = {ISD: Self-Supervised Learning by Iterative Similarity Distillation},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2021},
+    pages     = {9609-9618}
+}
+
 @misc{tejankar2020isd,
       title={ISD: Self-Supervised Learning by Iterative Similarity Distillation}, 
       author={Ajinkya Tejankar and Soroush Abbasi Koohpayegani and Vipin Pillai and Paolo Favaro and Hamed Pirsiavash},
